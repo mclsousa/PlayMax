@@ -477,7 +477,16 @@ main.content {
   animation: spin 1s linear infinite;
 }
 
-/* ── Painel admin ──────────────────────────────────────── */
+/* ── Painel admin (tema claro: fundo branco, caixas cinza) ── */
+
+.admin-light {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background: #ffffff;
+  color: #1c1e27;
+  color-scheme: light;
+}
 
 .admin-shell {
   max-width: 1100px;
@@ -491,6 +500,7 @@ main.content {
   font-size: 28px;
   letter-spacing: -0.01em;
   margin-bottom: 22px;
+  color: #14151d;
 }
 
 .admin-bar {
@@ -507,12 +517,12 @@ main.content {
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
-  color: var(--text);
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
+  color: #1c1e27;
+  background: #f3f4f7;
+  border: 1px solid #dcdfe6;
   border-radius: 10px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .admin-input {
@@ -522,7 +532,8 @@ main.content {
 
 .admin-input:focus,
 .admin-edit input:focus {
-  border-color: var(--border-strong);
+  background: #fff;
+  border-color: var(--violet);
 }
 
 .admin-btn {
@@ -533,9 +544,9 @@ main.content {
   font-size: 13.5px;
   font-weight: 600;
   font-family: inherit;
-  color: var(--text);
-  background: rgba(139, 92, 246, 0.14);
-  border: 1px solid var(--border);
+  color: #2a2d3a;
+  background: #eef0f4;
+  border: 1px solid #d8dbe3;
   border-radius: 9px;
   cursor: pointer;
   white-space: nowrap;
@@ -543,12 +554,12 @@ main.content {
 }
 
 .admin-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.26);
-  border-color: var(--border-strong);
+  background: #e3e6ed;
+  border-color: #c6cad6;
 }
 
 .admin-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -559,7 +570,7 @@ main.content {
 }
 
 .admin-btn.primary:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
 }
 
 .admin-banner {
@@ -567,9 +578,9 @@ main.content {
   margin-bottom: 14px;
   font-size: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.1);
-  color: var(--green);
+  border: 1px solid #a7e8c9;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .admin-banner strong {
@@ -582,9 +593,9 @@ main.content {
   margin-bottom: 14px;
   font-size: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.1);
-  color: #f87171;
+  border: 1px solid #f5c2c2;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .admin-table {
@@ -600,14 +611,14 @@ main.content {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
-  border-bottom: 1px solid var(--border);
+  color: #8a8fa3;
+  border-bottom: 1px solid #e3e5ec;
 }
 
 .admin-table td {
   padding: 12px 8px;
-  border-bottom: 1px solid rgba(139, 110, 255, 0.08);
-  color: var(--text-dim);
+  border-bottom: 1px solid #eceef3;
+  color: #3c3f4e;
   vertical-align: middle;
 }
 
@@ -615,7 +626,7 @@ main.content {
   font-family: var(--font-mono), monospace;
   font-size: 13px;
   letter-spacing: 0.03em;
-  color: var(--text);
+  color: #14151d;
 }
 
 .status-pill {
@@ -625,23 +636,23 @@ main.content {
   font-size: 12px;
   font-weight: 600;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(139, 92, 246, 0.1);
-  color: var(--violet-bright);
+  border: 1px solid #ddd6fe;
+  background: #f5f3ff;
+  color: #6d28d9;
 }
 
 .status-pill.active,
 .status-pill.trial {
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.1);
-  color: var(--green);
+  border-color: #a7e8c9;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .status-pill.revoked,
 .status-pill.expired {
-  border-color: rgba(248, 113, 113, 0.3);
-  background: rgba(248, 113, 113, 0.08);
-  color: #f87171;
+  border-color: #f5c2c2;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .admin-actions {
@@ -658,7 +669,7 @@ main.content {
 }
 
 .admin-edit {
-  background: var(--bg-raised);
+  background: #f6f7fa;
 }
 
 .admin-edit > td {
@@ -677,7 +688,7 @@ main.content {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-dim);
+  color: #5a5e70;
 }
 
 /* ── Rodapé ────────────────────────────────────────────── */

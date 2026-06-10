@@ -24,30 +24,39 @@ export default function AdminPage() {
   const [editMaxDevices, setEditMaxDevices] = useState(1);
   const [editNotes, setEditNotes] = useState("");
 
-  const load = useCallback(async () => {
-    if (!adminKey.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/admin/licenses", {
-        headers: { "x-admin-key": adminKey.trim() },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Falha ao carregar");
+  const load = useCallback(
+    async (keyOverride?: string) => {
+      const key = (keyOverride ?? adminKey).trim();
+      if (!key) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/admin/licenses", {
+          headers: { "x-admin-key": key },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error ?? "Falha ao carregar");
+        }
+        setLicenses(data.licenses ?? []);
+        window.localStorage.setItem("playmax_admin_key", key);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
       }
-      setLicenses(data.licenses ?? []);
-      window.localStorage.setItem("playmax_admin_key", adminKey.trim());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [adminKey]);
+    },
+    [adminKey],
+  );
 
   useEffect(() => {
     const saved = window.localStorage.getItem("playmax_admin_key");
-    if (saved) setAdminKey(saved);
+    if (saved) {
+      setAdminKey(saved);
+      // Com chave salva, carrega a lista direto — sem exigir clique em "Entrar".
+      void load(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function createLicense() {
@@ -125,9 +134,16 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="admin-shell">
-      <h1 className="admin-title">Painel admin — Licenças</h1>
-      <div className="admin-bar">
+    <div className="admin-light">
+      <main className="admin-shell">
+        <h1 className="admin-title">Painel admin — Licenças</h1>
+      <form
+        className="admin-bar"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void load();
+        }}
+      >
         <input
           type="password"
           className="admin-input"
@@ -135,7 +151,7 @@ export default function AdminPage() {
           value={adminKey}
           onChange={(event) => setAdminKey(event.target.value)}
         />
-        <button type="button" className="admin-btn" onClick={() => void load()} disabled={loading}>
+        <button type="submit" className="admin-btn" disabled={loading}>
           Entrar
         </button>
         <button
@@ -146,7 +162,7 @@ export default function AdminPage() {
         >
           Nova licença
         </button>
-      </div>
+      </form>
 
       {createdKey ? (
         <p className="admin-banner">
@@ -291,6 +307,7 @@ export default function AdminPage() {
           })}
         </tbody>
       </table>
-    </main>
+      </main>
+    </div>
   );
 }

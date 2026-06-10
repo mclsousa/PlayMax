@@ -1,3 +1,4 @@
+import type Stripe from "stripe";
 import {
   generateLicenseKey,
   getSupabaseAdmin,
@@ -7,6 +8,7 @@ import {
   type LicenseRow,
 } from "./supabase";
 import { signLicenseToken } from "./license-token";
+import { getStripe } from "./stripe";
 
 export class LicenseApiError extends Error {
   code: string;
@@ -223,6 +225,47 @@ export async function listLicenses() {
   }
 
   return data;
+}
+
+export async function getLicenseBySession(sessionId: string) {
+  const trimmed = sessionId.trim();
+  if (!trimmed.startsWith("cs_")) {
+    throw new LicenseApiError("INVALID_REQUEST", "Sessão inválida.");
+  }
+
+  const stripe = getStripe();
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(trimmed);
+  } catch {
+    throw new LicenseApiError("SESSION_NOT_FOUND", "Sessão de pagamento não encontrada.");
+  }
+
+  if (session.payment_status !== "paid") {
+    throw new LicenseApiError("NOT_PAID", "Pagamento ainda não confirmado.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("licenses")
+    .select("license_key, status, expires_at")
+    .eq("stripe_checkout_session_id", trimmed)
+    .maybeSingle();
+
+  if (error) {
+    throw new LicenseApiError("SERVER_ERROR", error.message);
+  }
+
+  if (!data) {
+    // Webhook ainda não processou a compra — o cliente segue em polling.
+    return { pending: true as const };
+  }
+
+  return {
+    licenseKey: data.license_key as string,
+    status: data.status as string,
+    expiresAt: data.expires_at as string | null,
+  };
 }
 
 export { generateLicenseKey };

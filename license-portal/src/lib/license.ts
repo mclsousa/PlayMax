@@ -6,6 +6,7 @@ import {
   normalizeLicenseKey,
   type LicenseRow,
 } from "./supabase";
+import { signLicenseToken } from "./license-token";
 
 export class LicenseApiError extends Error {
   code: string;
@@ -98,7 +99,10 @@ export async function activateLicense(input: {
       .update({ last_validated_at: new Date().toISOString(), device_name: input.deviceName ?? null })
       .eq("id", existing.id);
 
-    return licensePayload(license);
+    return {
+      ...licensePayload(license),
+      token: signLicenseToken(license, deviceFingerprint),
+    };
   }
 
   const activationCount = await countActivations(license.id);
@@ -119,7 +123,10 @@ export async function activateLicense(input: {
     throw new LicenseApiError("SERVER_ERROR", error.message);
   }
 
-  return licensePayload(license);
+  return {
+    ...licensePayload(license),
+    token: signLicenseToken(license, deviceFingerprint),
+  };
 }
 
 export async function validateLicense(input: {
@@ -159,7 +166,10 @@ export async function validateLicense(input: {
     .update({ last_validated_at: new Date().toISOString() })
     .eq("id", activation.id);
 
-  return licensePayload(license);
+  return {
+    ...licensePayload(license),
+    token: signLicenseToken(license, deviceFingerprint),
+  };
 }
 
 export async function createManualLicense(input: {

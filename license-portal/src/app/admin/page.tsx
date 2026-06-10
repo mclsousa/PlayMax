@@ -125,40 +125,45 @@ export default function AdminPage() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 1080, margin: "0 auto", padding: 32 }}>
-      <h1>Painel admin — Licenças</h1>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+    <main className="admin-shell">
+      <h1 className="admin-title">Painel admin — Licenças</h1>
+      <div className="admin-bar">
         <input
           type="password"
+          className="admin-input"
           placeholder="ADMIN_API_KEY"
           value={adminKey}
           onChange={(event) => setAdminKey(event.target.value)}
-          style={{ flex: 1, padding: 8 }}
         />
-        <button type="button" onClick={() => void load()} disabled={loading}>
+        <button type="button" className="admin-btn" onClick={() => void load()} disabled={loading}>
           Entrar
         </button>
-        <button type="button" onClick={() => void createLicense()} disabled={loading || !adminKey}>
+        <button
+          type="button"
+          className="admin-btn primary"
+          onClick={() => void createLicense()}
+          disabled={loading || !adminKey}
+        >
           Nova licença
         </button>
       </div>
 
       {createdKey ? (
-        <p style={{ background: "#ecfdf5", padding: 12, borderRadius: 8 }}>
+        <p className="admin-banner">
           Licença criada: <strong>{createdKey}</strong>
         </p>
       ) : null}
-      {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
+      {error ? <p className="admin-error">{error}</p> : null}
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table className="admin-table">
         <thead>
           <tr>
-            <th align="left">Chave</th>
-            <th align="left">Status</th>
-            <th align="left">Vencimento</th>
-            <th align="left">PCs</th>
-            <th align="left">Nota</th>
-            <th align="left">Ações</th>
+            <th>Chave</th>
+            <th>Status</th>
+            <th>Vencimento</th>
+            <th>PCs</th>
+            <th>Nota</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -166,58 +171,68 @@ export default function AdminPage() {
             const activations = license.license_activations?.[0]?.count ?? 0;
             return (
               <Fragment key={license.id}>
-                <tr style={{ borderTop: "1px solid #e5e7eb" }}>
-                  <td style={{ padding: "8px 4px", fontFamily: "monospace" }}>{license.license_key}</td>
-                  <td style={{ padding: "8px 4px" }}>{license.status}</td>
-                  <td style={{ padding: "8px 4px" }}>
+                <tr>
+                  <td className="admin-key">{license.license_key}</td>
+                  <td>
+                    <span className={`status-pill ${license.status}`}>{license.status}</span>
+                  </td>
+                  <td>
                     {license.expires_at
                       ? new Date(license.expires_at).toLocaleDateString("pt-BR")
                       : "—"}
                   </td>
-                  <td style={{ padding: "8px 4px" }}>
+                  <td>
                     {activations} / {license.max_devices ?? 1}
                   </td>
-                  <td style={{ padding: "8px 4px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {license.notes ?? "—"}
-                  </td>
-                  <td style={{ padding: "8px 4px", display: "flex", gap: 6 }}>
-                    {license.status === "revoked" ? (
+                  <td className="admin-note">{license.notes ?? "—"}</td>
+                  <td>
+                    <div className="admin-actions">
+                      {license.status === "revoked" ? (
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          disabled={loading}
+                          onClick={() => void patchLicense({ licenseId: license.id, action: "unrevoke" })}
+                        >
+                          Desbloquear
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          disabled={loading}
+                          onClick={() => void patchLicense({ licenseId: license.id, action: "revoke" })}
+                        >
+                          Bloquear
+                        </button>
+                      )}
                       <button
                         type="button"
-                        disabled={loading}
-                        onClick={() => void patchLicense({ licenseId: license.id, action: "unrevoke" })}
+                        className="admin-btn"
+                        disabled={loading || activations === 0}
+                        onClick={() => {
+                          if (window.confirm("Resetar a ativação? O PC atual será desconectado.")) {
+                            void patchLicense({ licenseId: license.id, action: "reset_devices" });
+                          }
+                        }}
                       >
-                        Desbloquear
+                        Resetar PC
                       </button>
-                    ) : (
                       <button
                         type="button"
+                        className="admin-btn"
                         disabled={loading}
-                        onClick={() => void patchLicense({ licenseId: license.id, action: "revoke" })}
+                        onClick={() => startEdit(license)}
                       >
-                        Bloquear
+                        Editar
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      disabled={loading || activations === 0}
-                      onClick={() => {
-                        if (window.confirm("Resetar a ativação? O PC atual será desconectado.")) {
-                          void patchLicense({ licenseId: license.id, action: "reset_devices" });
-                        }
-                      }}
-                    >
-                      Resetar PC
-                    </button>
-                    <button type="button" disabled={loading} onClick={() => startEdit(license)}>
-                      Editar
-                    </button>
+                    </div>
                   </td>
                 </tr>
                 {editingId === license.id ? (
-                  <tr style={{ background: "#f9fafb" }}>
-                    <td colSpan={6} style={{ padding: 12 }}>
-                      <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                  <tr className="admin-edit">
+                    <td colSpan={6}>
+                      <div className="admin-edit-fields">
                         <label>
                           Vencimento:{" "}
                           <input
@@ -243,7 +258,7 @@ export default function AdminPage() {
                             max={10}
                             value={editMaxDevices}
                             onChange={(event) => setEditMaxDevices(Number(event.target.value))}
-                            style={{ width: 56 }}
+                            style={{ width: 64 }}
                           />
                         </label>
                         <label>
@@ -256,10 +271,15 @@ export default function AdminPage() {
                             style={{ width: 240 }}
                           />
                         </label>
-                        <button type="button" disabled={loading} onClick={() => void saveEdit(license.id)}>
+                        <button
+                          type="button"
+                          className="admin-btn primary"
+                          disabled={loading}
+                          onClick={() => void saveEdit(license.id)}
+                        >
                           Salvar
                         </button>
-                        <button type="button" onClick={() => setEditingId(null)}>
+                        <button type="button" className="admin-btn" onClick={() => setEditingId(null)}>
                           Cancelar
                         </button>
                       </div>

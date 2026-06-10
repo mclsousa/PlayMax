@@ -11,8 +11,9 @@ import {
   ListVideo,
   Loader2,
   PartyPopper,
-  Play,
 } from "lucide-react";
+
+import { BrandLogo } from "@/components/BrandLogo";
 
 type Phase = "loading" | "ready" | "timeout" | "invalid" | "no-session";
 
@@ -24,7 +25,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="shell">
       <header className="nav reveal reveal-1">
         <div className="brand-mark">
-          <Play size={18} strokeWidth={2.5} fill="currentColor" />
+          <BrandLogo size={20} />
         </div>
         <span className="brand-name">Play Max</span>
       </header>
@@ -192,7 +193,7 @@ function SuccessContent() {
         <div className="step">
           <span className="step-num">3</span>
           <p>
-            <strong>Adicione sua lista</strong> M3U ou Xtream e aproveite!
+            <strong>Adicione a lista</strong> M3U ou Xtream do seu provedor e aproveite!
           </p>
           <ListVideo size={18} className="step-icon" />
         </div>

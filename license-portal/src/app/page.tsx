@@ -1,37 +1,38 @@
 import {
   Clapperboard,
+  Info,
   ListVideo,
   MessageCircle,
   MonitorPlay,
-  Play,
   ShieldCheck,
   Sparkles,
   Tv,
   Zap,
 } from "lucide-react";
 
+import { BrandLogo } from "@/components/BrandLogo";
 import { CheckoutButton } from "@/components/CheckoutButton";
 
 const FEATURES = [
   {
     icon: ListVideo,
-    title: "Sua lista, do seu jeito",
-    text: "Compatível com listas M3U e contas Xtream — cole e assista.",
+    title: "Traga a sua lista",
+    text: "Cole a lista M3U ou a conta Xtream do seu provedor e comece a assistir.",
   },
   {
     icon: Clapperboard,
-    title: "Filmes e séries organizados",
-    text: "Catálogo com capas, sinopses e continuação de onde parou.",
+    title: "Catálogo organizado",
+    text: "Os filmes e séries da sua lista ganham capas, sinopses e continue de onde parou.",
   },
   {
     icon: Tv,
     title: "TV ao vivo com guia",
-    text: "Canais com programação completa (EPG): veja o que está passando agora e a seguir.",
+    text: "Seus canais com guia de programação (EPG), quando o seu provedor disponibiliza.",
   },
   {
     icon: MessageCircle,
-    title: "Suporte de verdade",
-    text: "Atendimento direto pelo WhatsApp sempre que precisar.",
+    title: "Suporte pelo WhatsApp",
+    text: "Ajuda direta para ativar a licença e configurar a sua lista.",
   },
 ];
 
@@ -42,7 +43,7 @@ export default function HomePage() {
     <div className="shell">
       <header className="nav reveal reveal-1">
         <div className="brand-mark">
-          <Play size={18} strokeWidth={2.5} fill="currentColor" />
+          <BrandLogo size={20} />
         </div>
         <span className="brand-name">Play Max</span>
       </header>
@@ -50,16 +51,16 @@ export default function HomePage() {
       <main className="content">
         <span className="badge reveal reveal-1">
           <Sparkles size={14} />
-          Licença oficial · ativação imediata
+          Para quem já tem lista IPTV
         </span>
 
         <h1 className="hero-title reveal reveal-2">
-          Sua TV, filmes e séries. <em>Em um só lugar.</em>
+          Sua lista IPTV merece <em>um player à altura.</em>
         </h1>
 
         <p className="hero-sub reveal reveal-3">
-          O Play Max é o player IPTV para Windows que transforma a sua lista em uma experiência de
-          streaming completa — rápida, bonita e sem complicação.
+          O Play Max é o player para Windows que organiza a lista M3U ou Xtream que você já tem —
+          com capas, guia de programação e aquela cara de streaming de verdade.
         </p>
 
         <section className="features reveal reveal-4" aria-label="Recursos">
@@ -99,6 +100,14 @@ export default function HomePage() {
             </span>
           </div>
         </section>
+
+        <aside className="disclaimer reveal reveal-5">
+          <Info size={16} />
+          <p>
+            O Play Max é um aplicativo reprodutor. Não vendemos nem fornecemos canais, filmes,
+            séries ou listas IPTV — para usar, você precisa da lista M3U ou Xtream do seu provedor.
+          </p>
+        </aside>
       </main>
 
       <footer className="footer">

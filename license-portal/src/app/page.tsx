@@ -1,39 +1,110 @@
+import {
+  Clapperboard,
+  ListVideo,
+  MessageCircle,
+  MonitorPlay,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  Tv,
+  Zap,
+} from "lucide-react";
+
 import { CheckoutButton } from "@/components/CheckoutButton";
+
+const FEATURES = [
+  {
+    icon: ListVideo,
+    title: "Sua lista, do seu jeito",
+    text: "Compatível com listas M3U e contas Xtream — cole e assista.",
+  },
+  {
+    icon: Clapperboard,
+    title: "Filmes e séries organizados",
+    text: "Catálogo com capas, sinopses e continuação de onde parou.",
+  },
+  {
+    icon: Tv,
+    title: "TV ao vivo com guia",
+    text: "Canais com programação completa (EPG): veja o que está passando agora e a seguir.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Suporte de verdade",
+    text: "Atendimento direto pelo WhatsApp sempre que precisar.",
+  },
+];
 
 export default function HomePage() {
   const price = process.env.NEXT_PUBLIC_PRICE_DISPLAY;
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "0 auto", padding: 32 }}>
-      <h1>Play Max</h1>
-      <p style={{ fontSize: 18 }}>
-        O player IPTV para Windows: filmes, séries e TV ao vivo com a sua lista.
-      </p>
+    <div className="shell">
+      <header className="nav reveal reveal-1">
+        <div className="brand-mark">
+          <Play size={18} strokeWidth={2.5} fill="currentColor" />
+        </div>
+        <span className="brand-name">Play Max</span>
+      </header>
 
-      <ul style={{ lineHeight: 1.9 }}>
-        <li>Funciona com listas M3U e Xtream</li>
-        <li>Filmes, séries e TV ao vivo com guia de programação (EPG)</li>
-        <li>1 computador por licença</li>
-        <li>Suporte via WhatsApp</li>
-      </ul>
+      <main className="content">
+        <span className="badge reveal reveal-1">
+          <Sparkles size={14} />
+          Licença oficial · ativação imediata
+        </span>
 
-      {price ? (
-        <p style={{ fontSize: 24, fontWeight: 700, margin: "16px 0 8px" }}>{price}</p>
-      ) : null}
+        <h1 className="hero-title reveal reveal-2">
+          Sua TV, filmes e séries. <em>Em um só lugar.</em>
+        </h1>
 
-      <CheckoutButton />
+        <p className="hero-sub reveal reveal-3">
+          O Play Max é o player IPTV para Windows que transforma a sua lista em uma experiência de
+          streaming completa — rápida, bonita e sem complicação.
+        </p>
 
-      <p style={{ marginTop: 16 }}>
-        Após o pagamento, sua chave <strong>PLAY-XXXX-XXXX-XXXX</strong> aparece na tela na hora.
-      </p>
-      <p style={{ color: "#666" }}>
-        Pagamento via Stripe (cartão ou Pix, conforme habilitado no Dashboard).
-      </p>
-      <p style={{ marginTop: 32, fontSize: 13 }}>
-        <a href="/admin" style={{ color: "#999" }}>
-          Painel admin
-        </a>
-      </p>
-    </main>
+        <section className="features reveal reveal-4" aria-label="Recursos">
+          {FEATURES.map((feature) => (
+            <article className="feature-card" key={feature.title}>
+              <div className="feature-icon">
+                <feature.icon size={19} />
+              </div>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="price-card reveal reveal-5" aria-label="Assinatura">
+          <div className="price-row">
+            {price ? <span className="price-value">{price}</span> : null}
+            <span className="price-note">1 computador por licença · cancele quando quiser</span>
+          </div>
+
+          <CheckoutButton />
+
+          <div className="trust-row">
+            <span className="trust-item">
+              <ShieldCheck size={15} />
+              Pagamento seguro
+            </span>
+            <span className="trust-item">
+              <Zap size={15} />
+              Chave liberada na hora
+            </span>
+            <span className="trust-item">
+              <MonitorPlay size={15} />
+              Pronto para Windows
+            </span>
+          </div>
+        </section>
+      </main>
+
+      <footer className="footer">
+        <span>© {new Date().getFullYear()} Play Max</span>
+        <a href="/admin">acesso restrito</a>
+      </footer>
+    </div>
   );
 }

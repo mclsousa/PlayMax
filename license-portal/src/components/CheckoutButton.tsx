@@ -1,38 +1,52 @@
 "use client";
 
+import { useState } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
+
 export function CheckoutButton() {
+  const [loading, setLoading] = useState(false);
+
   async function startCheckout() {
-    const response = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    setLoading(true);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
 
-    const data = await response.json();
-    if (data.url) {
-      window.location.href = data.url;
-      return;
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      alert(data.error ?? "Não foi possível iniciar o pagamento.");
+      setLoading(false);
+    } catch {
+      alert("Não foi possível iniciar o pagamento. Tente novamente.");
+      setLoading(false);
     }
-
-    alert(data.error ?? "Não foi possível iniciar o pagamento.");
   }
 
   return (
     <button
       type="button"
+      className="cta-btn"
       onClick={() => void startCheckout()}
-      style={{
-        marginTop: 16,
-        padding: "12px 20px",
-        background: "#6d28d9",
-        color: "#fff",
-        border: "none",
-        borderRadius: 8,
-        cursor: "pointer",
-        fontSize: 16,
-      }}
+      disabled={loading}
     >
-      Assinar Play Max
+      {loading ? (
+        <>
+          <Loader2 size={19} className="spinner" />
+          Abrindo pagamento seguro…
+        </>
+      ) : (
+        <>
+          Assinar Play Max
+          <ArrowRight size={19} />
+        </>
+      )}
     </button>
   );
 }

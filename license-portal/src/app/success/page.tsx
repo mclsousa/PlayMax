@@ -2,11 +2,42 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  Check,
+  Copy,
+  Download,
+  KeyRound,
+  LifeBuoy,
+  ListVideo,
+  Loader2,
+  PartyPopper,
+  Play,
+} from "lucide-react";
 
 type Phase = "loading" | "ready" | "timeout" | "invalid" | "no-session";
 
 const MAX_ATTEMPTS = 30;
 const POLL_INTERVAL_MS = 2000;
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="shell">
+      <header className="nav reveal reveal-1">
+        <div className="brand-mark">
+          <Play size={18} strokeWidth={2.5} fill="currentColor" />
+        </div>
+        <span className="brand-name">Play Max</span>
+      </header>
+      <main className="content">
+        <div className="center-card">{children}</div>
+      </main>
+      <footer className="footer">
+        <span>© {new Date().getFullYear()} Play Max</span>
+        <span />
+      </footer>
+    </div>
+  );
+}
 
 function SuccessContent() {
   const params = useSearchParams();
@@ -62,84 +93,111 @@ function SuccessContent() {
     window.setTimeout(() => setCopied(false), 2000);
   }
 
-  const wrapper: React.CSSProperties = {
-    fontFamily: "system-ui, sans-serif",
-    maxWidth: 720,
-    margin: "0 auto",
-    padding: 32,
-  };
-
   if (phase === "no-session") {
     return (
-      <main style={wrapper}>
-        <h1>Pagamento recebido</h1>
-        <p>Sua licença será liberada em instantes. Você receberá a chave PLAY-XXXX por WhatsApp.</p>
-      </main>
+      <Shell>
+        <div className="status-icon success reveal reveal-1">
+          <PartyPopper size={30} />
+        </div>
+        <h1 className="success-title reveal reveal-2">Pagamento recebido!</h1>
+        <p className="success-sub reveal reveal-3">
+          Sua licença será liberada em instantes. Você receberá a chave de ativação pelo WhatsApp.
+        </p>
+      </Shell>
     );
   }
 
   if (phase === "loading") {
     return (
-      <main style={wrapper}>
-        <h1>Pagamento confirmado!</h1>
-        <p>Gerando sua chave de licença… isso leva só alguns segundos.</p>
-      </main>
+      <Shell>
+        <div className="status-icon pulse reveal reveal-1">
+          <Loader2 size={30} className="spinner" />
+        </div>
+        <h1 className="success-title reveal reveal-2">Pagamento confirmado!</h1>
+        <p className="success-sub reveal reveal-3">
+          Estamos gerando a sua chave de licença. Isso leva só alguns segundos…
+        </p>
+      </Shell>
     );
   }
 
   if (phase === "invalid") {
     return (
-      <main style={wrapper}>
-        <h1>Não foi possível localizar sua compra</h1>
-        <p>
+      <Shell>
+        <div className="status-icon reveal reveal-1">
+          <LifeBuoy size={30} />
+        </div>
+        <h1 className="success-title reveal reveal-2">Não localizamos sua compra</h1>
+        <p className="success-sub reveal reveal-3">
           Confira se você abriu o link correto após o pagamento. Se o problema continuar, fale com o
-          suporte pelo WhatsApp informando o e-mail usado na compra.
+          suporte pelo WhatsApp informando o e-mail usado na compra — resolvemos rapidinho.
         </p>
-      </main>
+      </Shell>
     );
   }
 
   if (phase === "timeout") {
     return (
-      <main style={wrapper}>
-        <h1>Pagamento confirmado!</h1>
-        <p>
+      <Shell>
+        <div className="status-icon reveal reveal-1">
+          <LifeBuoy size={30} />
+        </div>
+        <h1 className="success-title reveal reveal-2">Pagamento confirmado!</h1>
+        <p className="success-sub reveal reveal-3">
           Sua chave está sendo gerada — atualize esta página em instantes. Se ela não aparecer, fale
           com o suporte pelo WhatsApp informando o e-mail usado na compra.
         </p>
-      </main>
+      </Shell>
     );
   }
 
   return (
-    <main style={wrapper}>
-      <h1>Sua licença está pronta!</h1>
-      <p>Esta é a sua chave de ativação do Play Max:</p>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          background: "#ecfdf5",
-          border: "1px solid #a7f3d0",
-          borderRadius: 8,
-          padding: 16,
-          margin: "16px 0",
-        }}
-      >
-        <code style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>{licenseKey}</code>
-        <button type="button" onClick={() => void copyKey()} style={{ padding: "8px 16px" }}>
+    <Shell>
+      <div className="status-icon success reveal reveal-1">
+        <PartyPopper size={30} />
+      </div>
+      <h1 className="success-title reveal reveal-2">Sua licença está pronta!</h1>
+      <p className="success-sub reveal reveal-2">
+        Esta é a sua chave de ativação. Guarde com carinho — ela também fica registrada na sua
+        compra.
+      </p>
+
+      <div className="key-card reveal reveal-3">
+        <span className="key-value">{licenseKey}</span>
+        <button
+          type="button"
+          className={`copy-btn${copied ? " copied" : ""}`}
+          onClick={() => void copyKey()}
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? "Copiado!" : "Copiar"}
         </button>
       </div>
-      <p style={{ color: "#666" }}>Guarde esta chave — ela também fica registrada na sua compra.</p>
-      <h2>Como ativar</h2>
-      <ol>
-        <li>Baixe e instale o Play Max no seu computador.</li>
-        <li>Abra o aplicativo e cole a chave acima na tela de ativação.</li>
-        <li>Adicione sua lista M3U ou Xtream e bom proveito!</li>
-      </ol>
-    </main>
+
+      <div className="steps reveal reveal-4">
+        <div className="step">
+          <span className="step-num">1</span>
+          <p>
+            <strong>Baixe e instale o Play Max</strong> no seu computador Windows.
+          </p>
+          <Download size={18} className="step-icon" />
+        </div>
+        <div className="step">
+          <span className="step-num">2</span>
+          <p>
+            <strong>Cole a chave acima</strong> na tela de ativação do aplicativo.
+          </p>
+          <KeyRound size={18} className="step-icon" />
+        </div>
+        <div className="step">
+          <span className="step-num">3</span>
+          <p>
+            <strong>Adicione sua lista</strong> M3U ou Xtream e aproveite!
+          </p>
+          <ListVideo size={18} className="step-icon" />
+        </div>
+      </div>
+    </Shell>
   );
 }
 

@@ -22,6 +22,8 @@ pub struct LicenseState {
 struct LicenseApiResponse {
     ok: bool,
     #[serde(default)]
+    code: Option<String>,
+    #[serde(default)]
     message: Option<String>,
     #[serde(default)]
     token: Option<String>,
@@ -133,6 +135,25 @@ fn apply_api_response(
     payload: &LicenseApiResponse,
 ) -> AppResult<LicenseState> {
     if !payload.ok {
+        // Rejeição autoritativa do servidor sobre esta licença/dispositivo:
+        // o token local deixa de ser honrado imediatamente. Erros internos
+        // do servidor (SERVER_ERROR) não derrubam o token — a janela offline
+        // assinada continua cobrindo indisponibilidade do portal.
+        const AUTHORITATIVE_REJECTIONS: [&str; 5] = [
+            "LICENSE_REVOKED",
+            "LICENSE_EXPIRED",
+            "LICENSE_NOT_FOUND",
+            "DEVICE_NOT_ACTIVATED",
+            "DEVICE_LIMIT",
+        ];
+        let authoritative = payload
+            .code
+            .as_deref()
+            .map(|code| AUTHORITATIVE_REJECTIONS.contains(&code))
+            .unwrap_or(false);
+        if authoritative {
+            db.with_conn(|conn| settings::set_string(conn, KEY_LICENSE_TOKEN, None))?;
+        }
         return Err(AppError::msg(
             payload
                 .message
@@ -354,6 +375,7 @@ mod tests {
         let db = test_db();
         let payload = LicenseApiResponse {
             ok: true,
+            code: None,
             message: None,
             token: None,
         };
@@ -410,5 +432,64 @@ mod tests {
             .expect("read");
         assert!(key.is_none());
         assert!(token.is_none());
+    }
+
+    #[test]
+    fn rejeicao_autoritativa_limpa_token_local() {
+        let db = test_db();
+        let signing = test_signing_key();
+        license_token::set_test_public_key(signing.verifying_key().to_bytes());
+
+        let token = make_valid_token(&signing);
+        db.with_conn(|conn| {
+            settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-AAAA-BBBB-CCCC"))?;
+            settings::set_string(conn, KEY_LICENSE_TOKEN, Some(&token))?;
+            Ok(())
+        })
+        .expect("seed");
+
+        let payload = LicenseApiResponse {
+            ok: false,
+            code: Some("LICENSE_REVOKED".to_string()),
+            message: Some("Licença bloqueada.".to_string()),
+            token: None,
+        };
+        let result = apply_api_response(&db, "PLAY-AAAA-BBBB-CCCC", &payload);
+        assert!(result.is_err());
+
+        let stored = db
+            .with_conn(|conn| settings::get_string(conn, KEY_LICENSE_TOKEN))
+            .expect("read token");
+        assert!(stored.is_none(), "token deve ser removido em revogacao");
+
+        let state = get_license_state(&db).expect("state");
+        assert!(!state.valid);
+    }
+
+    #[test]
+    fn erro_interno_do_servidor_preserva_token_local() {
+        let db = test_db();
+        let signing = test_signing_key();
+        license_token::set_test_public_key(signing.verifying_key().to_bytes());
+
+        let token = make_valid_token(&signing);
+        db.with_conn(|conn| {
+            settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-AAAA-BBBB-CCCC"))?;
+            settings::set_string(conn, KEY_LICENSE_TOKEN, Some(&token))?;
+            Ok(())
+        })
+        .expect("seed");
+
+        let payload = LicenseApiResponse {
+            ok: false,
+            code: Some("SERVER_ERROR".to_string()),
+            message: Some("Erro interno.".to_string()),
+            token: None,
+        };
+        let result = apply_api_response(&db, "PLAY-AAAA-BBBB-CCCC", &payload);
+        assert!(result.is_err());
+
+        let state = get_license_state(&db).expect("state");
+        assert!(state.valid, "token integro deve continuar valendo em erro interno do servidor");
     }
 }

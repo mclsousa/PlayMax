@@ -213,6 +213,66 @@ export async function revokeLicense(licenseId: string) {
   }
 }
 
+export async function unrevokeLicense(licenseId: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("licenses")
+    .update({ status: "active" })
+    .eq("id", licenseId);
+
+  if (error) {
+    throw new LicenseApiError("SERVER_ERROR", error.message);
+  }
+}
+
+export async function resetActivations(licenseId: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("license_activations")
+    .delete()
+    .eq("license_id", licenseId);
+
+  if (error) {
+    throw new LicenseApiError("SERVER_ERROR", error.message);
+  }
+}
+
+export async function updateLicense(
+  licenseId: string,
+  fields: { expiresAt?: string | null; maxDevices?: number; notes?: string | null },
+) {
+  const patch: Record<string, unknown> = {};
+
+  if ("expiresAt" in fields) {
+    if (fields.expiresAt !== null && Number.isNaN(Date.parse(fields.expiresAt ?? ""))) {
+      throw new LicenseApiError("INVALID_REQUEST", "Data de vencimento inválida.");
+    }
+    patch.expires_at = fields.expiresAt;
+  }
+
+  if (fields.maxDevices !== undefined) {
+    if (!Number.isInteger(fields.maxDevices) || fields.maxDevices < 1 || fields.maxDevices > 10) {
+      throw new LicenseApiError("INVALID_REQUEST", "Número de dispositivos deve ser entre 1 e 10.");
+    }
+    patch.max_devices = fields.maxDevices;
+  }
+
+  if ("notes" in fields) {
+    patch.notes = fields.notes;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    throw new LicenseApiError("INVALID_REQUEST", "Nenhum campo para atualizar.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("licenses").update(patch).eq("id", licenseId);
+
+  if (error) {
+    throw new LicenseApiError("SERVER_ERROR", error.message);
+  }
+}
+
 export async function listLicenses() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase

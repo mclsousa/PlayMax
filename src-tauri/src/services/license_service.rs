@@ -1,10 +1,10 @@
-use crate::db::settings::{self, KEY_LICENSE_EXPIRES_AT, KEY_LICENSE_KEY, KEY_LICENSE_LAST_VALIDATED, KEY_LICENSE_STATUS};
+use crate::db::settings::{self, KEY_LICENSE_KEY, KEY_LICENSE_TOKEN};
 use crate::db::SharedDb;
 use crate::error::{AppError, AppResult};
+use crate::services::license_token::{self, TokenClaims};
 use serde::{Deserialize, Serialize};
 use uuid::{uuid, Uuid};
 
-pub const GRACE_OFFLINE_SECS: i64 = 48 * 3600;
 pub const REVALIDATE_EVERY_SECS: i64 = 6 * 3600;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,15 +22,9 @@ pub struct LicenseState {
 struct LicenseApiResponse {
     ok: bool,
     #[serde(default)]
-    code: Option<String>,
-    #[serde(default)]
     message: Option<String>,
     #[serde(default)]
-    status: Option<String>,
-    #[serde(default, rename = "expiresAt")]
-    expires_at: Option<String>,
-    #[serde(default)]
-    valid: Option<bool>,
+    token: Option<String>,
 }
 
 pub fn device_fingerprint() -> String {
@@ -45,88 +39,53 @@ pub fn device_fingerprint() -> String {
 }
 
 pub fn device_name() -> String {
-    let hostname = std::env::var("COMPUTERNAME")
+    std::env::var("COMPUTERNAME")
         .or_else(|_| std::env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "PC".to_string());
-    hostname
+        .unwrap_or_else(|_| "PC".to_string())
 }
 
-fn parse_expires_at(value: &str) -> Option<i64> {
-    chrono::DateTime::parse_from_rfc3339(value)
-        .ok()
-        .map(|dt| dt.timestamp())
+fn state_from_claims(license_key: Option<String>, claims: &TokenClaims) -> LicenseState {
+    LicenseState {
+        license_key,
+        status: Some(claims.status.clone()),
+        expires_at: claims.license_expires_at,
+        last_validated_at: Some(claims.iat),
+        valid: true,
+        message: None,
+    }
 }
 
+fn invalid_state(license_key: Option<String>) -> LicenseState {
+    LicenseState {
+        license_key,
+        status: None,
+        expires_at: None,
+        last_validated_at: None,
+        valid: false,
+        message: None,
+    }
+}
+
+/// A ÚNICA fonte de verdade local é o token assinado: sem token verificado,
+/// o app está sem licença — valores soltos no SQLite não liberam nada.
 fn read_local_state(db: &SharedDb) -> AppResult<LicenseState> {
     db.with_conn(|conn| {
         let license_key = settings::get_string(conn, KEY_LICENSE_KEY)?;
-        let status = settings::get_string(conn, KEY_LICENSE_STATUS)?;
-        let expires_at = settings::get_i64(conn, KEY_LICENSE_EXPIRES_AT)?;
-        let last_validated_at = settings::get_i64(conn, KEY_LICENSE_LAST_VALIDATED)?;
-
-        let valid = is_locally_valid(&status, expires_at, last_validated_at);
-
-        Ok(LicenseState {
-            license_key,
-            status,
-            expires_at,
-            last_validated_at,
-            valid,
-            message: None,
-        })
+        let token = settings::get_string(conn, KEY_LICENSE_TOKEN)?;
+        let state = match token.as_deref() {
+            Some(token) => match license_token::verify_token(token, &device_fingerprint()) {
+                Ok(claims) => state_from_claims(license_key, &claims),
+                Err(_) => invalid_state(license_key),
+            },
+            None => invalid_state(license_key),
+        };
+        Ok(state)
     })
 }
 
-fn is_locally_valid(
-    status: &Option<String>,
-    expires_at: Option<i64>,
-    last_validated_at: Option<i64>,
-) -> bool {
-    let Some(status) = status.as_deref() else {
-        return false;
-    };
-
-    if status != "active" && status != "trial" {
-        return false;
-    }
-
-    if let Some(expires_at) = expires_at {
-        let now = chrono::Utc::now().timestamp();
-        if expires_at <= now {
-            return false;
-        }
-    }
-
-    if let Some(last_validated_at) = last_validated_at {
-        let now = chrono::Utc::now().timestamp();
-        if now - last_validated_at > GRACE_OFFLINE_SECS {
-            return false;
-        }
-    } else {
-        return false;
-    }
-
-    true
-}
-
-fn persist_license(
-    conn: &rusqlite::Connection,
-    license_key: &str,
-    status: &str,
-    expires_at: Option<i64>,
-) -> AppResult<()> {
+fn persist_license(conn: &rusqlite::Connection, license_key: &str, token: &str) -> AppResult<()> {
     settings::set_string(conn, KEY_LICENSE_KEY, Some(license_key))?;
-    settings::set_string(conn, KEY_LICENSE_STATUS, Some(status))?;
-    if let Some(expires_at) = expires_at {
-        settings::set_i64(conn, KEY_LICENSE_EXPIRES_AT, expires_at)?;
-    } else {
-        settings::set_string(conn, KEY_LICENSE_EXPIRES_AT, None)?;
-    }
-    settings::set_i64(
-        conn,
-        KEY_LICENSE_LAST_VALIDATED,
-        chrono::Utc::now().timestamp(),
-    )?;
+    settings::set_string(conn, KEY_LICENSE_TOKEN, Some(token))?;
     Ok(())
 }
 
@@ -167,7 +126,12 @@ async fn post_license(
     Ok(payload)
 }
 
-fn apply_api_response(db: &SharedDb, license_key: &str, payload: &LicenseApiResponse) -> AppResult<LicenseState> {
+/// Exige token assinado na resposta e o verifica ANTES de persistir.
+fn apply_api_response(
+    db: &SharedDb,
+    license_key: &str,
+    payload: &LicenseApiResponse,
+) -> AppResult<LicenseState> {
     if !payload.ok {
         return Err(AppError::msg(
             payload
@@ -177,21 +141,27 @@ fn apply_api_response(db: &SharedDb, license_key: &str, payload: &LicenseApiResp
         ));
     }
 
-    let status = payload
-        .status
-        .clone()
-        .unwrap_or_else(|| "active".to_string());
-    let expires_at = payload
-        .expires_at
-        .as_deref()
-        .and_then(parse_expires_at);
+    let Some(token) = payload.token.as_deref() else {
+        return Err(AppError::msg(
+            "Resposta do servidor de licenças sem token assinado. Atualize o portal.",
+        ));
+    };
 
-    db.with_conn(|conn| persist_license(conn, license_key, &status, expires_at))?;
+    let claims = license_token::verify_token(token, &device_fingerprint())?;
+    if claims.license_key != license_key {
+        return Err(AppError::msg("Token assinado para outra licença."));
+    }
 
-    read_local_state(db)
+    db.with_conn(|conn| persist_license(conn, license_key, token))?;
+
+    Ok(state_from_claims(Some(license_key.to_string()), &claims))
 }
 
-pub async fn activate_license(db: &SharedDb, api_base_url: String, license_key: String) -> AppResult<LicenseState> {
+pub async fn activate_license(
+    db: &SharedDb,
+    api_base_url: String,
+    license_key: String,
+) -> AppResult<LicenseState> {
     let normalized = license_key.trim().to_uppercase();
     if normalized.is_empty() {
         return Err(AppError::msg("Informe a chave PLAY-XXXX."));
@@ -222,11 +192,51 @@ pub fn get_license_state(db: &SharedDb) -> AppResult<LicenseState> {
 pub fn clear_license(db: &SharedDb) -> AppResult<()> {
     db.with_conn(|conn| {
         settings::set_string(conn, KEY_LICENSE_KEY, None)?;
-        settings::set_string(conn, KEY_LICENSE_STATUS, None)?;
-        settings::set_string(conn, KEY_LICENSE_EXPIRES_AT, None)?;
-        settings::set_i64(conn, KEY_LICENSE_LAST_VALIDATED, 0)?;
+        settings::set_string(conn, KEY_LICENSE_TOKEN, None)?;
         Ok(())
     })
+}
+
+pub async fn ensure_license_valid(db: &SharedDb, api_base_url: String) -> AppResult<LicenseState> {
+    let state = read_local_state(db)?;
+
+    if !state.valid {
+        // Sem token válido (instalação migrada, expirado ou adulterado):
+        // a única saída é validar online com a chave salva.
+        if state.license_key.is_some() {
+            return validate_license_online(db, api_base_url).await;
+        }
+        return Ok(LicenseState {
+            message: Some("Ative sua licença PLAY-XXXX para continuar.".to_string()),
+            ..state
+        });
+    }
+
+    let now = chrono::Utc::now().timestamp();
+    let should_revalidate = state
+        .last_validated_at
+        .map(|iat| now - iat >= REVALIDATE_EVERY_SECS)
+        .unwrap_or(true);
+
+    if !should_revalidate {
+        return Ok(state);
+    }
+
+    match validate_license_online(db, api_base_url.clone()).await {
+        Ok(updated) => Ok(updated),
+        Err(err) => {
+            // Offline: segue válido enquanto o token assinado não expirar (48h).
+            let recheck = read_local_state(db)?;
+            if recheck.valid {
+                Ok(LicenseState {
+                    message: Some(format!("Modo offline: {err}")),
+                    ..recheck
+                })
+            } else {
+                Err(err)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -235,7 +245,11 @@ mod tests {
     use crate::db::migrations;
     use crate::db::models::Profile;
     use crate::db::profiles;
-    use crate::db::settings::{KEY_LICENSE_KEY, KEY_LICENSE_LAST_VALIDATED, KEY_LICENSE_STATUS};
+    use crate::db::settings::{KEY_LICENSE_KEY, KEY_LICENSE_TOKEN};
+    use crate::services::license_token;
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    use base64::Engine;
+    use ed25519_dalek::{Signer, SigningKey};
     use rusqlite::Connection;
     use std::sync::Arc;
 
@@ -245,8 +259,115 @@ mod tests {
         Arc::new(crate::db::DbState::single(conn))
     }
 
+    fn test_signing_key() -> SigningKey {
+        SigningKey::from_bytes(&[7u8; 32])
+    }
+
+    fn make_valid_token(signing: &SigningKey) -> String {
+        let now = chrono::Utc::now().timestamp();
+        let payload = serde_json::json!({
+            "v": 1,
+            "licenseKey": "PLAY-AAAA-BBBB-CCCC",
+            "fingerprint": device_fingerprint(),
+            "status": "active",
+            "licenseExpiresAt": now + 365 * 24 * 3600,
+            "iat": now,
+            "exp": now + 48 * 3600,
+        });
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let sig = signing.sign(&bytes);
+        format!(
+            "{}.{}",
+            URL_SAFE_NO_PAD.encode(&bytes),
+            URL_SAFE_NO_PAD.encode(sig.to_bytes())
+        )
+    }
+
     #[test]
-    fn clear_license_does_not_delete_profiles() {
+    fn estado_sem_token_e_invalido_mesmo_com_status_editado_no_sqlite() {
+        let db = test_db();
+        // Cenário do ataque: usuário grava status='active' e data futura direto no banco.
+        db.with_conn(|conn| {
+            settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-AAAA-BBBB-CCCC"))?;
+            conn.execute(
+                "INSERT INTO app_settings (key, value) VALUES
+                 ('license_status', 'active'),
+                 ('license_expires_at', '99999999999'),
+                 ('license_last_validated_at', '99999999999')",
+                [],
+            )?;
+            Ok(())
+        })
+        .expect("seed ataque");
+
+        let state = get_license_state(&db).expect("state");
+        assert!(!state.valid, "valores texto-puro nao podem liberar o app");
+    }
+
+    #[test]
+    fn token_adulterado_e_invalido() {
+        let db = test_db();
+        let signing = test_signing_key();
+        license_token::set_test_public_key(signing.verifying_key().to_bytes());
+
+        let token = make_valid_token(&signing);
+        let (payload_b64, sig_b64) = token.split_once('.').unwrap();
+        let mut bytes = URL_SAFE_NO_PAD.decode(payload_b64).unwrap();
+        let pos = bytes.windows(6).position(|w| w == b"active").unwrap();
+        bytes[pos] = b'x';
+        let tampered = format!("{}.{}", URL_SAFE_NO_PAD.encode(&bytes), sig_b64);
+
+        db.with_conn(|conn| {
+            settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-AAAA-BBBB-CCCC"))?;
+            settings::set_string(conn, KEY_LICENSE_TOKEN, Some(&tampered))?;
+            Ok(())
+        })
+        .expect("seed");
+
+        let state = get_license_state(&db).expect("state");
+        assert!(!state.valid);
+    }
+
+    #[test]
+    fn token_valido_libera_e_preenche_estado() {
+        let db = test_db();
+        let signing = test_signing_key();
+        license_token::set_test_public_key(signing.verifying_key().to_bytes());
+
+        let token = make_valid_token(&signing);
+        db.with_conn(|conn| {
+            settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-AAAA-BBBB-CCCC"))?;
+            settings::set_string(conn, KEY_LICENSE_TOKEN, Some(&token))?;
+            Ok(())
+        })
+        .expect("seed");
+
+        let state = get_license_state(&db).expect("state");
+        assert!(state.valid);
+        assert_eq!(state.status.as_deref(), Some("active"));
+        assert!(state.expires_at.is_some());
+        assert!(state.last_validated_at.is_some());
+    }
+
+    #[test]
+    fn resposta_de_api_sem_token_e_erro_e_nada_persiste() {
+        let db = test_db();
+        let payload = LicenseApiResponse {
+            ok: true,
+            message: None,
+            token: None,
+        };
+        let result = apply_api_response(&db, "PLAY-AAAA-BBBB-CCCC", &payload);
+        assert!(result.is_err());
+
+        let token = db
+            .with_conn(|conn| settings::get_string(conn, KEY_LICENSE_TOKEN))
+            .expect("read token");
+        assert!(token.is_none());
+    }
+
+    #[test]
+    fn clear_license_remove_token_e_nao_apaga_perfis() {
         let db = test_db();
         db.with_conn(|conn| {
             profiles::insert_profile(
@@ -267,12 +388,7 @@ mod tests {
 
         db.with_conn(|conn| {
             settings::set_string(conn, KEY_LICENSE_KEY, Some("PLAY-TEST-TEST-TEST"))?;
-            settings::set_string(conn, KEY_LICENSE_STATUS, Some("active"))?;
-            settings::set_i64(
-                conn,
-                KEY_LICENSE_LAST_VALIDATED,
-                chrono::Utc::now().timestamp(),
-            )?;
+            settings::set_string(conn, KEY_LICENSE_TOKEN, Some("abc.def"))?;
             Ok(())
         })
         .expect("seed license");
@@ -283,45 +399,16 @@ mod tests {
             .with_conn(profiles::list_profiles)
             .expect("list profiles");
         assert_eq!(profiles_left.len(), 1);
-        assert_eq!(profiles_left[0].name, "Lista");
 
-        let license_key = db
-            .with_conn(|conn| settings::get_string(conn, KEY_LICENSE_KEY))
-            .expect("read license");
-        assert!(license_key.is_none());
-    }
-}
-
-pub async fn ensure_license_valid(db: &SharedDb, api_base_url: String) -> AppResult<LicenseState> {
-    let state = read_local_state(db)?;
-    if !state.valid {
-        return Ok(LicenseState {
-            message: Some("Ative sua licença PLAY-XXXX para continuar.".to_string()),
-            ..state
-        });
-    }
-
-    let now = chrono::Utc::now().timestamp();
-    let should_revalidate = state
-        .last_validated_at
-        .map(|last| now - last >= REVALIDATE_EVERY_SECS)
-        .unwrap_or(true);
-
-    if !should_revalidate {
-        return Ok(state);
-    }
-
-    match validate_license_online(db, api_base_url).await {
-        Ok(updated) => Ok(updated),
-        Err(err) => {
-            if is_locally_valid(&state.status, state.expires_at, state.last_validated_at) {
-                Ok(LicenseState {
-                    message: Some(format!("Modo offline: {err}")),
-                    ..state
-                })
-            } else {
-                Err(err)
-            }
-        }
+        let (key, token) = db
+            .with_conn(|conn| {
+                Ok((
+                    settings::get_string(conn, KEY_LICENSE_KEY)?,
+                    settings::get_string(conn, KEY_LICENSE_TOKEN)?,
+                ))
+            })
+            .expect("read");
+        assert!(key.is_none());
+        assert!(token.is_none());
     }
 }

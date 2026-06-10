@@ -540,6 +540,12 @@ pub fn run(conn: &Connection) -> AppResult<()> {
     if !migration_012_applied(conn)? {
         apply_migration_012(conn)?;
     }
+    // Migração para token assinado: os valores texto-puro de licença deixaram
+    // de ser fonte de verdade e são removidos.
+    conn.execute(
+        "DELETE FROM app_settings WHERE key IN ('license_status', 'license_expires_at', 'license_last_validated_at')",
+        [],
+    )?;
     Ok(())
 }
 

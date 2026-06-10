@@ -7,9 +7,7 @@ pub const KEY_PARENTAL_ENABLED: &str = "parental_control_enabled";
 pub const KEY_PARENTAL_PIN_HASH: &str = "parental_pin_hash";
 pub const KEY_ACTIVE_PROFILE: &str = "active_profile_id";
 pub const KEY_LICENSE_KEY: &str = "license_key";
-pub const KEY_LICENSE_STATUS: &str = "license_status";
-pub const KEY_LICENSE_EXPIRES_AT: &str = "license_expires_at";
-pub const KEY_LICENSE_LAST_VALIDATED: &str = "license_last_validated_at";
+pub const KEY_LICENSE_TOKEN: &str = "license_token";
 
 pub fn get_bool(conn: &Connection, key: &str, default: bool) -> AppResult<bool> {
     let value: Option<String> = conn

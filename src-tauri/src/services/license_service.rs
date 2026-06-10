@@ -5,8 +5,6 @@ use crate::services::license_token::{self, TokenClaims};
 use serde::{Deserialize, Serialize};
 use uuid::{uuid, Uuid};
 
-pub const REVALIDATE_EVERY_SECS: i64 = 6 * 3600;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LicenseState {
@@ -233,16 +231,8 @@ pub async fn ensure_license_valid(db: &SharedDb, api_base_url: String) -> AppRes
         });
     }
 
-    let now = chrono::Utc::now().timestamp();
-    let should_revalidate = state
-        .last_validated_at
-        .map(|iat| now - iat >= REVALIDATE_EVERY_SECS)
-        .unwrap_or(true);
-
-    if !should_revalidate {
-        return Ok(state);
-    }
-
+    // Sempre tenta revalidar online (revogação corta na próxima checagem);
+    // o token assinado de 48h cobre o caso offline.
     match validate_license_online(db, api_base_url.clone()).await {
         Ok(updated) => Ok(updated),
         Err(err) => {

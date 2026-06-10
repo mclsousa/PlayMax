@@ -138,8 +138,9 @@ existem.
   persistir** (resposta sem token válido = erro "Resposta inválida do servidor").
   Persiste apenas `license_key` + token.
 - `is_locally_valid` é removida; toda decisão local passa por `verify_token`.
-- `ensure_license_valid`: mesma cadência — revalida online quando
-  `now - claims.iat >= REVALIDATE_EVERY_SECS` (6h); em falha de rede, segue
+- `ensure_license_valid`: revalida online em TODA abertura do app (decisão de
+  2026-06-10, a pedido do usuário: revogação corta na próxima abertura; o
+  frontend também re-checa a cada 6h com o app aberto); em falha de rede, segue
   válido enquanto o token verificar (as 48h assinadas); token expirado/ausente
   e sem rede → inválido, mensagem pedindo conexão/ativação.
 - `clear_license`: também limpa o token.

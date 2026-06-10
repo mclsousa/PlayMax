@@ -69,8 +69,15 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
       const validated = await api.validateLicense(LICENSE_API_URL);
       setLicense(validated);
     } catch (err) {
-      // Offline or license server unreachable — keep the local state.
       setError(err instanceof Error ? err.message : String(err));
+      // An authoritative rejection (revoked/expired) clears the stored token,
+      // so re-reading the local state blocks right away; a plain network
+      // failure keeps the still-valid token and the app stays usable offline.
+      try {
+        setLicense(await api.getLicenseState());
+      } catch {
+        // keep the local state already shown
+      }
     } finally {
       setLoading(false);
     }
@@ -116,6 +123,10 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh();
+    // Revalida periodicamente enquanto o app fica aberto, para que uma
+    // revogação no servidor corte o acesso sem depender de reiniciar.
+    const interval = window.setInterval(() => void refresh(), 6 * 3600 * 1000);
+    return () => window.clearInterval(interval);
   }, [refresh]);
 
   const value = useMemo(

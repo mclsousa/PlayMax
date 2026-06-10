@@ -3,6 +3,7 @@ pub mod catalog_sync;
 pub mod content_kind;
 pub mod epg_service;
 pub mod license_service;
+pub mod license_token;
 pub mod parental_service;
 pub mod profile_service;
 pub mod series_sync;

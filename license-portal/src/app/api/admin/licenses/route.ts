@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createManualLicense,
+  deleteLicense,
   LicenseApiError,
   listLicenses,
   resetActivations,
@@ -75,6 +76,11 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "reset_devices") {
       await resetActivations(licenseId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "delete") {
+      await deleteLicense(licenseId);
       return NextResponse.json({ ok: true });
     }
 

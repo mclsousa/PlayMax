@@ -14,6 +14,7 @@ interface LicenseRow {
 
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
+  const [authed, setAuthed] = useState(false);
   const [licenses, setLicenses] = useState<LicenseRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,7 @@ export default function AdminPage() {
           throw new Error(data.error ?? "Falha ao carregar");
         }
         setLicenses(data.licenses ?? []);
+        setAuthed(true);
         window.localStorage.setItem("playmax_admin_key", key);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -137,32 +139,53 @@ export default function AdminPage() {
     <div className="admin-light">
       <main className="admin-shell">
         <h1 className="admin-title">Painel admin — Licenças</h1>
-      <form
-        className="admin-bar"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void load();
-        }}
-      >
-        <input
-          type="password"
-          className="admin-input"
-          placeholder="ADMIN_API_KEY"
-          value={adminKey}
-          onChange={(event) => setAdminKey(event.target.value)}
-        />
-        <button type="submit" className="admin-btn" disabled={loading}>
-          Entrar
-        </button>
-        <button
-          type="button"
-          className="admin-btn primary"
-          onClick={() => void createLicense()}
-          disabled={loading || !adminKey}
+      {authed ? (
+        <div className="admin-bar">
+          <button
+            type="button"
+            className="admin-btn primary"
+            onClick={() => void createLicense()}
+            disabled={loading}
+          >
+            Nova licença
+          </button>
+          <button type="button" className="admin-btn" onClick={() => void load()} disabled={loading}>
+            Atualizar
+          </button>
+          <span style={{ flex: 1 }} />
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={() => {
+              window.localStorage.removeItem("playmax_admin_key");
+              setAdminKey("");
+              setAuthed(false);
+              setLicenses([]);
+            }}
+          >
+            Sair
+          </button>
+        </div>
+      ) : (
+        <form
+          className="admin-bar"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void load();
+          }}
         >
-          Nova licença
-        </button>
-      </form>
+          <input
+            type="password"
+            className="admin-input"
+            placeholder="ADMIN_API_KEY"
+            value={adminKey}
+            onChange={(event) => setAdminKey(event.target.value)}
+          />
+          <button type="submit" className="admin-btn primary" disabled={loading}>
+            Entrar
+          </button>
+        </form>
+      )}
 
       {createdKey ? (
         <p className="admin-banner">
@@ -241,6 +264,22 @@ export default function AdminPage() {
                         onClick={() => startEdit(license)}
                       >
                         Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn danger"
+                        disabled={loading}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Apagar a licença ${license.license_key} permanentemente? Esta ação não tem volta.`,
+                            )
+                          ) {
+                            void patchLicense({ licenseId: license.id, action: "delete" });
+                          }
+                        }}
+                      >
+                        Apagar
                       </button>
                     </div>
                   </td>

@@ -237,6 +237,18 @@ export async function resetActivations(licenseId: string) {
   }
 }
 
+export async function deleteLicense(licenseId: string) {
+  // Remove as ativações antes da licença (FK pode não ter ON DELETE CASCADE).
+  await resetActivations(licenseId);
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("licenses").delete().eq("id", licenseId);
+
+  if (error) {
+    throw new LicenseApiError("SERVER_ERROR", error.message);
+  }
+}
+
 export async function updateLicense(
   licenseId: string,
   fields: { expiresAt?: string | null; maxDevices?: number; notes?: string | null },

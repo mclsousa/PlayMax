@@ -1,7 +1,7 @@
 # Design: Portal de licenças v2 — entrega automática, admin de suporte, landing essencial
 
 **Data:** 2026-06-10
-**Status:** Aprovado pelo usuário
+**Status:** Implementado em 2026-06-10. E2E produção 16/17 PASS — o item restante (by-session caminho de erro 404) depende de configurar as env vars do Stripe no Vercel (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PRICE_ID), sem as quais o fluxo de venda automática não opera.
 
 ## Contexto
 

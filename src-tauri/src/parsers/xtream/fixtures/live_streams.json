@@ -1,0 +1,16 @@
+[
+  {
+    "stream_id": 3001,
+    "name": "News Channel",
+    "stream_icon": "http://example.com/logos/news.png",
+    "category_id": "1",
+    "epg_channel_id": "news.hd"
+  },
+  {
+    "stream_id": 3002,
+    "name": "Sports Live",
+    "stream_icon": null,
+    "category_id": "10",
+    "epg_channel_id": null
+  }
+]

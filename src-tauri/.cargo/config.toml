@@ -1,0 +1,6 @@
+# Faster incremental rebuilds during development.
+[profile.dev]
+incremental = true
+
+[build]
+incremental = true

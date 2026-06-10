@@ -1,0 +1,28 @@
+{
+  "epg_listings": [
+    {
+      "id": "1037932301",
+      "epg_id": "34",
+      "title": "Sm9ybmFsIE5hY2lvbmFs",
+      "lang": "pt",
+      "start": "2026-06-07 20:00:00",
+      "end": "2026-06-07 21:00:00",
+      "description": "Um programa de notícias ao vivo.",
+      "channel_id": "news.hd",
+      "start_timestamp": "1749328800",
+      "stop_timestamp": "1749332400"
+    },
+    {
+      "id": "1037932302",
+      "epg_id": "35",
+      "title": "Sm9ybmFsIGRhIE5vaXRl",
+      "lang": "pt",
+      "start": "2026-06-07 21:00:00",
+      "end": "2026-06-07 22:30:00",
+      "description": "",
+      "channel_id": "news.hd",
+      "start_timestamp": "1749332400",
+      "stop_timestamp": "1749337800"
+    }
+  ]
+}

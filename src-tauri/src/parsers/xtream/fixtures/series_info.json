@@ -1,0 +1,64 @@
+{
+  "seasons": [
+    {
+      "season_number": 1,
+      "name": "Season 1",
+      "episode_count": 2,
+      "overview": "The beginning.",
+      "cover": "http://example.com/s1.jpg",
+      "air_date": "2020-01-01"
+    },
+    {
+      "season_number": 2,
+      "name": "Season 2",
+      "episode_count": 1,
+      "overview": "The continuation.",
+      "cover": null,
+      "air_date": "2021-01-01"
+    }
+  ],
+  "info": {
+    "name": "Sample Series",
+    "cover": "http://example.com/posters/series1.jpg",
+    "cover_big": "http://example.com/posters/series1-detail-big.jpg",
+    "backdrop_path": "http://example.com/backdrops/series1-detail.jpg",
+    "plot": "A sample show about testing.",
+    "genre": "Drama",
+    "rating": "9",
+    "category_id": "12",
+    "last_modified": "1700000000"
+  },
+  "episodes": {
+    "1": [
+      {
+        "id": 5001,
+        "episode_num": 1,
+        "title": "Pilot",
+        "container_extension": "mp4",
+        "season": 1,
+        "added": "1700000000",
+        "stream_icon": "http://example.com/ep1.jpg"
+      },
+      {
+        "id": "5002",
+        "episode_num": 2,
+        "title": "Second Episode",
+        "container_extension": "mp4",
+        "season": 1,
+        "added": "1700050000",
+        "stream_icon": null
+      }
+    ],
+    "2": [
+      {
+        "id": 5003,
+        "episode_num": 1,
+        "title": "Season Two Premiere",
+        "container_extension": "mkv",
+        "season": 2,
+        "added": "1700200000",
+        "stream_icon": null
+      }
+    ]
+  }
+}

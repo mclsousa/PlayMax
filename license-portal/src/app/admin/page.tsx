@@ -1,0 +1,161 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+interface LicenseRow {
+  id: string;
+  license_key: string;
+  status: string;
+  expires_at: string | null;
+  notes: string | null;
+  license_activations?: { count: number }[];
+}
+
+export default function AdminPage() {
+  const [adminKey, setAdminKey] = useState("");
+  const [licenses, setLicenses] = useState<LicenseRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!adminKey.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/licenses", {
+        headers: { "x-admin-key": adminKey.trim() },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Falha ao carregar");
+      }
+      setLicenses(data.licenses ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [adminKey]);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("playmax_admin_key");
+    if (saved) setAdminKey(saved);
+  }, []);
+
+  async function createLicense() {
+    setLoading(true);
+    setError(null);
+    setCreatedKey(null);
+    try {
+      const response = await fetch("/api/admin/licenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey.trim(),
+        },
+        body: JSON.stringify({ status: "active" }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Falha ao criar");
+      }
+      setCreatedKey(data.license.license_key);
+      window.localStorage.setItem("playmax_admin_key", adminKey.trim());
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function revokeLicense(licenseId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/licenses", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey.trim(),
+        },
+        body: JSON.stringify({ licenseId, action: "revoke" }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Falha ao bloquear");
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 960, margin: "0 auto", padding: 32 }}>
+      <h1>Painel admin — Licenças</h1>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input
+          type="password"
+          placeholder="ADMIN_API_KEY"
+          value={adminKey}
+          onChange={(event) => setAdminKey(event.target.value)}
+          style={{ flex: 1, padding: 8 }}
+        />
+        <button type="button" onClick={() => void load()} disabled={loading}>
+          Entrar
+        </button>
+        <button type="button" onClick={() => void createLicense()} disabled={loading || !adminKey}>
+          Nova licença
+        </button>
+      </div>
+
+      {createdKey ? (
+        <p style={{ background: "#ecfdf5", padding: 12, borderRadius: 8 }}>
+          Licença criada: <strong>{createdKey}</strong>
+        </p>
+      ) : null}
+      {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
+
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th align="left">Chave</th>
+            <th align="left">Status</th>
+            <th align="left">Vencimento</th>
+            <th align="left">PCs</th>
+            <th align="left">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {licenses.map((license) => (
+            <tr key={license.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+              <td style={{ padding: "8px 4px", fontFamily: "monospace" }}>{license.license_key}</td>
+              <td style={{ padding: "8px 4px" }}>{license.status}</td>
+              <td style={{ padding: "8px 4px" }}>
+                {license.expires_at
+                  ? new Date(license.expires_at).toLocaleDateString("pt-BR")
+                  : "—"}
+              </td>
+              <td style={{ padding: "8px 4px" }}>
+                {license.license_activations?.[0]?.count ?? 0} / 1
+              </td>
+              <td style={{ padding: "8px 4px" }}>
+                {license.status !== "revoked" ? (
+                  <button type="button" onClick={() => void revokeLicense(license.id)}>
+                    Bloquear
+                  </button>
+                ) : (
+                  "—"
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </main>
+  );
+}

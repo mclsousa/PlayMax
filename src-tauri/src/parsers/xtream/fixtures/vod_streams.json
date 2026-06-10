@@ -1,0 +1,23 @@
+[
+  {
+    "stream_id": 1001,
+    "name": "Sample Movie",
+    "stream_icon": "http://example.com/icons/movie1-small.jpg",
+    "cover_big": "http://example.com/posters/movie1-big.jpg",
+    "cover": "http://example.com/posters/movie1.jpg",
+    "backdrop_path": "http://example.com/backdrops/movie1.jpg",
+    "rating": "8.0",
+    "category_id": "5",
+    "added": "1700000000",
+    "container_extension": "mp4"
+  },
+  {
+    "stream_id": 1002,
+    "name": "Another Film",
+    "stream_icon": null,
+    "rating": "7.5",
+    "category_id": "5",
+    "added": "1700100000",
+    "container_extension": "mkv"
+  }
+]

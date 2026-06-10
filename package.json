@@ -1,0 +1,43 @@
+{
+  "name": "play-max",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "powershell -ExecutionPolicy Bypass -File scripts/with-cargo.ps1",
+    "tauri:dev": "powershell -ExecutionPolicy Bypass -File scripts/tauri-dev.ps1",
+    "tauri:dev:fast": "powershell -ExecutionPolicy Bypass -File scripts/tauri-dev.ps1 -NoWatch",
+    "app:local": "npm run build && powershell -ExecutionPolicy Bypass -File scripts/with-cargo.ps1 run -- --config src-tauri/tauri.local.conf.json",
+    "tauri:build": "powershell -ExecutionPolicy Bypass -File scripts/with-cargo.ps1 build",
+    "build:portable": "powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1",
+    "setup:lib": "npx tauri-plugin-libmpv-api setup-lib",
+    "setup:lib:manual": "powershell -ExecutionPolicy Bypass -File scripts/setup-libmpv.ps1",
+    "verify": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
+    "fixture:10k": "node scripts/generate-fixture.mjs 10000"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.5",
+    "@tanstack/react-virtual": "^3.13.9",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "mpegts.js": "^1.8.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2",
+    "tauri-plugin-libmpv-api": "^0.3.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "tailwindcss": "^4.1.8",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  }
+}

@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  createManualLicense,
+  LicenseApiError,
+  listLicenses,
+  revokeLicense,
+} from "@/lib/license";
+
+function assertAdmin(request: NextRequest) {
+  const expected = process.env.ADMIN_API_KEY;
+  if (!expected) {
+    throw new LicenseApiError("SERVER_ERROR", "ADMIN_API_KEY not configured");
+  }
+
+  const provided = request.headers.get("x-admin-key");
+  if (!provided || provided !== expected) {
+    throw new LicenseApiError("UNAUTHORIZED", "Não autorizado.");
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    assertAdmin(request);
+    const licenses = await listLicenses();
+    return NextResponse.json({ licenses });
+  } catch (error) {
+    if (error instanceof LicenseApiError) {
+      return NextResponse.json({ error: error.message }, { status: error.code === "UNAUTHORIZED" ? 401 : 500 });
+    }
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    assertAdmin(request);
+    const body = await request.json();
+    const license = await createManualLicense({
+      status: body.status,
+      expiresAt: body.expiresAt ?? null,
+      notes: body.notes ?? null,
+    });
+    return NextResponse.json({ license });
+  } catch (error) {
+    if (error instanceof LicenseApiError) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    assertAdmin(request);
+    const body = await request.json();
+    const licenseId = String(body.licenseId ?? "");
+    const action = String(body.action ?? "");
+
+    if (!licenseId) {
+      return NextResponse.json({ error: "licenseId required" }, { status: 400 });
+    }
+
+    if (action === "revoke") {
+      await revokeLicense(licenseId);
+      return NextResponse.json({ ok: true });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    if (error instanceof LicenseApiError) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}

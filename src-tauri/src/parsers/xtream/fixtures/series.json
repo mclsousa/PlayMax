@@ -1,0 +1,24 @@
+[
+  {
+    "series_id": 2001,
+    "name": "Sample Series",
+    "cover": "http://example.com/posters/series1.jpg",
+    "cover_big": "http://example.com/posters/series1-big.jpg",
+    "backdrop_path": "http://example.com/backdrops/series1.jpg",
+    "plot": "A sample show about testing.",
+    "genre": "Drama",
+    "rating": "9",
+    "category_id": "12",
+    "last_modified": "1700000000"
+  },
+  {
+    "series_id": 2002,
+    "name": "Second Show",
+    "cover": null,
+    "plot": "A second show.",
+    "genre": "Comedy",
+    "rating": null,
+    "category_id": "12",
+    "last_modified": "1700200000"
+  }
+]

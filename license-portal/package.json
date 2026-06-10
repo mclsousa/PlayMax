@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --import tsx --test tests/license-token.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
@@ -19,6 +20,7 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "tsx": "^4.22.4",
     "typescript": "^5.8.3"
   }
 }

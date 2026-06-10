@@ -1,7 +1,7 @@
 # Design: Licença com token assinado (Ed25519)
 
 **Data:** 2026-06-09
-**Status:** Aprovado pelo usuário
+**Status:** Implementado em 2026-06-10 (branch feat/signed-license-token)
 
 ## Problema
 

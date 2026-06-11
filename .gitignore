@@ -7,5 +7,5 @@ src-tauri/target/
 *.log
 
 .env
-src-tauri/lib/
+src-tauri/lib/temp/
 *.tsbuildinfo

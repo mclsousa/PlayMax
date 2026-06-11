@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -56,6 +57,17 @@ export function ActivationPage() {
             {loading ? "Validando..." : "Ativar licença"}
           </Button>
         </form>
+
+        <p className="text-center text-sm text-text-secondary">
+          Ainda não tem licença?{" "}
+          <button
+            type="button"
+            className="font-semibold text-accent underline-offset-2 hover:underline"
+            onClick={() => void openUrl("https://playmx.com.br")}
+          >
+            Compre em playmx.com.br
+          </button>
+        </p>
 
         <p className="text-center text-xs text-text-muted">
           Cada licença funciona em <strong>1 computador</strong>. Precisa renovar? Fale com seu

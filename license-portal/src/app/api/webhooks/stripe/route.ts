@@ -82,7 +82,16 @@ export async function POST(request: NextRequest) {
         }
 
         const licenseKey = generateLicenseKey();
-        const expiresAt = addMonths(new Date(), 1).toISOString();
+        // Vencimento = fim do período pago da assinatura (mensal, anual etc.).
+        let expiresAt = addMonths(new Date(), 1).toISOString();
+        if (stripeSubscriptionId) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+            expiresAt = periodEndFromSubscription(subscription);
+          } catch (error) {
+            console.error("[stripe/webhook] retrieve subscription", error);
+          }
+        }
 
         await supabase.from("licenses").insert({
           customer_id: customerId,
@@ -103,7 +112,14 @@ export async function POST(request: NextRequest) {
 
         if (!stripeSubscriptionId) break;
 
-        const expiresAt = addMonths(new Date(), 1).toISOString();
+        // Renovação: estende até o fim do novo período pago.
+        let expiresAt = addMonths(new Date(), 1).toISOString();
+        try {
+          const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+          expiresAt = periodEndFromSubscription(subscription);
+        } catch (error) {
+          console.error("[stripe/webhook] retrieve subscription", error);
+        }
         await supabase
           .from("licenses")
           .update({ status: "active", expires_at: expiresAt })
